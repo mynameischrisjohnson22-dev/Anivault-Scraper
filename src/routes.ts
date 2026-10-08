@@ -28,8 +28,16 @@ function proxiedHlsUrl(req: Request, url: string, ref?: string): string {
   return `${publicBase(req)}/api/proxy/hls?url=${encodeURIComponent(url)}${refParam}`;
 }
 
-function proxiedVideoUrl(req: Request, url: string): string {
-  return `${publicBase(req)}/api/proxy/video?url=${encodeURIComponent(url)}`;
+function proxiedVideoUrl(
+  req: Request,
+  url: string,
+  ref?: string
+): string {
+  const refParam = ref
+    ? `&ref=${encodeURIComponent(ref)}`
+    : "";
+
+  return `${publicBase(req)}/api/proxy/video?url=${encodeURIComponent(url)}${refParam}`;
 }
 
 function proxiedSubtitleUrl(req: Request, url: string, ref?: string): string {
