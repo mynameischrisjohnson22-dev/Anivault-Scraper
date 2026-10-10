@@ -487,16 +487,39 @@ router.get('/proxy/hls', async (req: Request, res: Response) => {
       return res.send(rewriteHlsPlaylist(req, text, url, ref));
     }
 
-    // Set correct video MIME types for segments so HLS.js demuxer can process them reliably
-    if (url.includes('.ts') || contentType.includes('mp2t')) {
-      res.type('video/mp2t');
-    } else if (url.includes('.m4s') || url.includes('.mp4') || url.includes('.woff') || contentType.includes('mp4')) {
-      res.type('video/mp4');
-    } else {
-      res.type(contentType || 'application/octet-stream');
-    }
+   // Identify video bytes instead of trusting disguised file extensions.
+const pathname = new URL(url).pathname.toLowerCase();
 
-    return res.send(body);
+const isTransportStream =
+  body.length > 376 &&
+  body[0] === 0x47 &&
+  body[188] === 0x47 &&
+  body[376] === 0x47;
+
+const isMp4 =
+  body.length >= 8 &&
+  ["ftyp", "styp", "moof", "moov", "sidx"].includes(
+    body.toString("ascii", 4, 8),
+  );
+
+if (isTransportStream) {
+  res.type("video/mp2t");
+} else if (
+  isMp4 ||
+  /\.(m4s|mp4)$/i.test(pathname) ||
+  contentType.includes("mp4")
+) {
+  res.type("video/mp4");
+} else if (
+  pathname.endsWith(".ts") ||
+  contentType.includes("mp2t")
+) {
+  res.type("video/mp2t");
+} else {
+  res.type(contentType || "application/octet-stream");
+}
+
+return res.send(body);
   } catch (e: any) {
     return res.status(e?.response?.status || 502).json({ error: 'HLS proxy failed', detail: e?.message || String(e) });
   }
